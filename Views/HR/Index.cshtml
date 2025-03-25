@@ -1,0 +1,815 @@
+﻿@model ID_Request_Login.Models.HRUser
+@using System.Web.Mvc
+@using System.Web.Mvc.Html
+@using System.Web.Mvc.Ajax
+@{ ViewBag.Title = "ID Request System - HR Dashboard";
+    Layout = null;
+    if (Session["UserID"] == null)
+    {
+        Response.Redirect("~/Login/Index");
+    }
+
+    var requests = ViewBag.Requests as List<ID_Request_Login.Models.Request_Data>; }
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ID Request System - HR Dashboard</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: #f5f7fb;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+        }
+
+        .main-container {
+            min-height: 100vh;
+            padding: 2rem 0;
+        }
+
+        .header-panel {
+            background: linear-gradient(120deg, #2b5876, #4e4376);
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(43, 88, 118, 0.2);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+            /*.header-panel::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                right: 0;
+                width: 300px;
+                height: 300px;
+                background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+                border-radius: 50%;
+                transform: translate(50%, -50%);
+            }*/
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+            .card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
+            }
+
+        .card-header {
+            background: linear-gradient(120deg, #2b5876, #4e4376);
+            color: white;
+            border-top-left-radius: 12px !important;
+            border-top-right-radius: 12px !important;
+            border-bottom: none;
+            padding: 1.2rem 1.5rem;
+        }
+
+        .card-body {
+            padding: 2rem;
+        }
+
+        .form-control {
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            border: 1px solid #e1e5eb;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+            transition: all 0.3s;
+        }
+
+            .form-control:focus {
+                border-color: #4e4376;
+                box-shadow: 0 0 0 0.25rem rgba(78, 67, 118, 0.25);
+            }
+
+        label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn {
+            border-radius: 8px;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(120deg, #2b5876, #4e4376);
+            border: none;
+        }
+
+            .btn-primary:hover {
+                background: linear-gradient(120deg, #1f4258, #3d365f);
+                box-shadow: 0 5px 15px rgba(78, 67, 118, 0.3);
+            }
+
+        .btn-secondary {
+            background: #6c757d;
+            border: none;
+        }
+
+            .btn-secondary:hover {
+                background: #5a6268;
+                box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+            }
+
+        .btn-danger {
+            background: linear-gradient(120deg, #2b5876, #4e4376);
+            border: none;
+        }
+
+            .btn-danger:hover {
+                background: rgb(255 0 0);
+                box-shadow: 0 5px 15px rgba(78, 67, 118, 0.3);
+            }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 0.5rem 1.5rem;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-weight: 500;
+            cursor: pointer;
+            display: block;
+            width: 100%;
+            text-align: center;
+        }
+
+            .logout-btn:hover {
+                background: rgba(255, 255, 255, 0.3);
+                color: white;
+            }
+
+        .btn-info {
+            background: linear-gradient(120deg, #2b5876, #4e4376);
+            border: none;
+        }
+
+            .btn-info:hover {
+                background: linear-gradient(120deg, #1f4258, #3d365f);
+                box-shadow: 0 5px 15px rgba(78, 67, 118, 0.3);
+            }
+
+        .icon-box {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.5rem;
+            height: 2.5rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            margin-right: 1rem;
+        }
+
+        .info-box {
+            background: rgba(78, 67, 118, 0.05);
+            border-left: 4px solid #4e4376;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 2rem;
+        }
+
+        .form-icon {
+            margin-right: 8px;
+            color: #4e4376;
+        }
+
+        .table-responsive {
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+            .table th {
+                background: linear-gradient(120deg, #2b5876, #4e4376);
+                color: white;
+                font-weight: 600;
+                border: none;
+            }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .checkbox-cell {
+            text-align: center;
+        }
+
+        .form-check-input {
+            width: 1.2em;
+            height: 1.2em;
+            cursor: pointer;
+            opacity: 1;
+            position: relative;
+            margin-top: 0;
+            vertical-align: middle;
+        }
+
+        .select-checkbox {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .deleted-row td {
+            color: red !important;
+        }
+
+        .status-pending {
+            color: #ff9800;
+            font-weight: bold;
+        }
+
+        .status-in-progress {
+            color: #2196F3;
+            font-weight: bold;
+        }
+
+        .status-completed {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .status-deleted {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .status-select {
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            background-color: #f8f9fa;
+            font-size: 0.9rem;
+        }
+
+        .status-cell {
+            min-width: 140px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-container">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="header-panel">
+                        <div class="header-content">
+                            <div class="user-info">
+                                <div class="icon-box">
+                                    <i class="fas fa-id-card fa-lg"></i>
+                                </div>
+                                <div>
+                                    <h4 class="mb-1">Employee ID Request System (HR Dashboard)</h4>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-user-circle me-2"></i>
+                                        <h5 class="mb-0">Welcome, @Session["UserName"].ToString()</h5>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <button type="button" class="logout-btn w-100" onclick="window.location.href='@Url.Action("LogOut", "Login")'">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Log Out
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="shadow rounded p-3 bg-white">
+                        <h4><i class="fas fa-list-alt me-2"></i>All Requests</h4>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header py-1">
+                                        <strong>Date Period</strong>
+                                    </div>
+                                    <div class="card-body py-2">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label class="form-label">From Date</label>
+                                                <input type="date" id="fromDate" class="form-control form-control-sm" />
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">To Date</label>
+                                                <input type="date" id="toDate" class="form-control form-control-sm" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header py-1">
+                                        <strong>Status</strong>
+                                    </div>
+                                    <div class="card-body py-2">
+                                        <select id="statusSelect" class="form-select form-select-sm">
+                                            <option value="All">All Statuses</option>
+                                            <option value="Pending">Pending</option>
+                                            <option value="In-Progress">In-Progress</option>
+                                            <option value="Completed">Completed</option>
+                                            <option value="Deleted">Deleted</option>
+                                            <option value="Issued">Issued</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header py-1">
+                                        <strong>Section</strong>
+                                    </div>
+                                    <div class="card-body py-2">
+                                        <select id="sectionSelect" class="form-select form-select-sm">
+                                            <option value="All">All Sections</option>
+                                            <option value="IT">IT</option>
+                                            <option value="Printing">Printing</option>
+                                            <option value="Dye">Dye</option>
+                                            <option value="Packing">Packing</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-center pt-2">
+                            <button type="button" class="btn btn-primary me-2" id="filterButton">
+                                <i class="fas fa-filter me-2"></i>Filter
+                            </button>
+                            <button type="button" class="btn btn-secondary me-2" id="resetFilterButton">
+                                <i class="fas fa-eraser me-2"></i>Clear
+                            </button>
+                            <button type="button" class="btn btn-success me-2" id="reportButton">
+                                <i class="fas fa-file-pdf me-2"></i>Generate Report
+                            </button>
+                            <button type="button" class="btn btn-info" id="newRequestButton">
+                                <i class="fas fa-plus-circle me-2"></i>New Request
+                            </button>
+                        </div>
+
+                        <div class="table-responsive mt-4">
+                            <table class="table table-bordered" id="requestsTable">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Request Date</th>
+                                        <th scope="col">Request By</th>
+                                        <th scope="col">Employee Name</th>
+                                        <th scope="col">Employee ID</th>
+                                        <th scope="col">Reason</th>
+                                        <th scope="col">Section</th>
+                                        <th scope="col" class="status-cell">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="requestsTableBody">
+                                    @if (requests != null && requests.Count > 0)
+                                    {
+                                        foreach (var request in requests)
+                                        {
+                                            <tr class="@(request.Status == "Deleted" ? "deleted-row" : "")">
+                                                <td>@request.RequestDate.ToString("yyyy-MM-dd")</td>
+                                                <td>@request.RequestBy</td>
+                                                <td>@request.EmployeeName</td>
+                                                <td>@request.EmployeeId</td>
+                                                <td>@request.Reason</td>
+                                                <td>@request.Section</td>
+                                                <td class="status-cell">
+                                                    @if (request.Status != "Deleted")
+                                                    {
+                                                        if (request.Status == "Pending")
+                                                        {
+                                                            <select class="status-select" data-id="@request.ReqId" data-original-status="@request.Status">
+                                                                <option value="Pending" selected>Pending</option>
+                                                                <option value="In-Progress">In-Progress</option>
+                                                            </select> }
+                                                        else if (request.Status == "In-Progress")
+                                                        {
+                                                            <select class="status-select" data-id="@request.ReqId" data-original-status="@request.Status">
+                                                                <option value="In-Progress" selected>In-Progress</option>
+                                                                <option value="Completed">Completed</option>
+                                                            </select> }
+                                                        else if (request.Status == "Completed")
+                                                        {
+                                                            <select class="status-select" data-id="@request.ReqId" data-original-status="@request.Status">
+                                                                <option value="Completed" selected>Completed</option>
+                                                                <option value="Issued">Issued</option>
+                                                            </select> }
+                                                        else if (request.Status == "Issued")
+                                                        {
+                                                            <span class="status-completed">Issued</span> }
+
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="status-deleted">Deleted</span>}
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="8" class="text-center">No requests found.</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+        <script>
+    document.addEventListener('DOMContentLoaded', function () {
+    const filterButton = document.getElementById('filterButton');
+    const resetFilterButton = document.getElementById('resetFilterButton');
+    const requestsTableBody = document.getElementById('requestsTableBody');
+    const newRequestButton = document.getElementById('newRequestButton');
+    const reportButton = document.getElementById('reportButton');
+
+    const newRequestModalElement = document.getElementById('newRequestModal');
+    let newRequestModal = null;
+
+    if (newRequestModalElement) {
+        newRequestModal = new bootstrap.Modal(newRequestModalElement);
+    }
+
+    const newRequestForm = document.getElementById('newRequestForm');
+
+    $(document).on('change', '.status-select', function() {
+        const requestId = $(this).data('id');
+        const originalStatus = $(this).data('original-status');
+        const newStatus = $(this).val();
+
+        if (originalStatus !== newStatus) {
+            if (confirm(`Are you sure you want to update the status from "${originalStatus}" to "${newStatus}"?`)) {
+                updateRequestStatus(requestId, newStatus);
+            } else {
+                $(this).val(originalStatus);
+            }
+        }
+    });
+
+    function updateRequestStatus(requestId, newStatus) {
+        $.ajax({
+            url: '@Url.Action("UpdateRequestStatus", "HR")',
+            type: 'POST',
+            data: {
+                reqId: requestId,
+                newStatus: newStatus
+            },
+            success: function(response) {
+                if (response.success) {
+                    $(`.status-select[data-id="${requestId}"]`).data('original-status', newStatus);
+                    alert(`Status successfully updated to "${newStatus}"`);
+                } else {
+                    alert('Error updating status: ' + response.message);
+                    $(`.status-select[data-id="${requestId}"]`).val(
+                        $(`.status-select[data-id="${requestId}"]`).data('original-status')
+                    );
+                }
+            },
+            error: function(error) {
+                console.error('Error updating status:', error);
+                alert('An error occurred while updating the status.');
+                $(`.status-select[data-id="${requestId}"]`).val(
+                    $(`.status-select[data-id="${requestId}"]`).data('original-status')
+                );
+            }
+        });
+    }
+
+    if (resetFilterButton) {
+        resetFilterButton.addEventListener('click', function () {
+            document.getElementById('fromDate').value = '';
+            document.getElementById('toDate').value = '';
+            document.getElementById('statusSelect').selectedIndex = 0;
+            document.getElementById('sectionSelect').selectedIndex = 0;
+
+            window.location.href = '@Url.Action("Index", "HR")';
+        });
+    }
+
+    if (filterButton) {
+        filterButton.addEventListener('click', function () {
+            const fromDate = document.getElementById('fromDate').value;
+            const toDate = document.getElementById('toDate').value;
+            const status = document.getElementById('statusSelect').value;
+            const section = document.getElementById('sectionSelect').value;
+
+            $.ajax({
+                url: '@Url.Action("FilterRequests", "HR")',
+                type: 'POST',
+                data: {
+                    fromDate: fromDate,
+                    toDate: toDate,
+                    status: status,
+                    section: section
+                },
+                success: function (data) {
+                    updateRequestsTable(data);
+                },
+                error: function (error) {
+                    console.error('Error filtering requests:', error);
+                    alert('An error occurred while filtering requests.');
+                }
+            });
+        });
+    }
+
+    if (newRequestButton && newRequestModal) {
+        newRequestButton.addEventListener('click', function () {
+            const currentDate = new Date();
+
+            const year = currentDate.getFullYear();
+            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const day = String(currentDate.getDate()).padStart(2, '0');
+            const formattedDate = `${year}-${month}-${day}`;
+
+            const modalRequestDate = document.getElementById('modalRequestDate');
+            if (modalRequestDate) {
+                modalRequestDate.value = formattedDate;
+            }
+
+            const modalEmployeeId = document.getElementById('modalEmployeeId');
+            if (modalEmployeeId) {
+                modalEmployeeId.value = '';
+            }
+
+            const modalEmployeeName = document.getElementById('modalEmployeeName');
+            if (modalEmployeeName) {
+                modalEmployeeName.value = '';
+            }
+
+            const modalReason = document.getElementById('modalReason');
+            if (modalReason) {
+                modalReason.selectedIndex = 0;
+            }
+
+            const modalSection = document.getElementById('modalSection');
+            if (modalSection) {
+                modalSection.selectedIndex = 0;
+            }
+
+            newRequestModal.show();
+        });
+    }
+
+    if (newRequestForm) {
+        newRequestForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const formData = {
+                EmployeeId: document.getElementById('modalEmployeeId').value,
+                EmployeeName: document.getElementById('modalEmployeeName').value,
+                Reason: document.getElementById('modalReason').value,
+                Section: document.getElementById('modalSection').value,
+                RequestDate: document.getElementById('modalRequestDate').value,
+                RequestBy: document.getElementById('modalRequestBy').value,
+                Status: document.getElementById('modalStatus').value
+            };
+
+            $.ajax({
+                url: '@Url.Action("CreateRequest", "HR")',
+                type: 'POST',
+                data: formData,
+                success: function() {
+                    newRequestModal.hide();
+                    window.location.href = '@Url.Action("Index", "HR")';
+                },
+                error: function(error) {
+                    console.error('Error creating request:', error);
+                    alert('An error occurred while creating the request. Please try again.');
+                }
+            });
+        });
+    }
+
+    if (reportButton) {
+        reportButton.addEventListener('click', function () {
+            const fromDate = document.getElementById('fromDate').value;
+            const toDate = document.getElementById('toDate').value;
+            const status = document.getElementById('statusSelect').value;
+            const section = document.getElementById('sectionSelect').value;
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '@Url.Action("GenerateReport", "HR")';
+
+            const fromDateInput = document.createElement('input');
+            fromDateInput.type = 'hidden';
+            fromDateInput.name = 'fromDate';
+            fromDateInput.value = fromDate;
+            form.appendChild(fromDateInput);
+
+            const toDateInput = document.createElement('input');
+            toDateInput.type = 'hidden';
+            toDateInput.name = 'toDate';
+            toDateInput.value = toDate;
+            form.appendChild(toDateInput);
+
+            const statusInput = document.createElement('input');
+            statusInput.type = 'hidden';
+            statusInput.name = 'status';
+            statusInput.value = status;
+            form.appendChild(statusInput);
+
+            const sectionInput = document.createElement('input');
+            sectionInput.type = 'hidden';
+            sectionInput.name = 'section';
+            sectionInput.value = section;
+            form.appendChild(sectionInput);
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        });
+    }
+
+    function updateRequestsTable(requests) {
+        if (!requestsTableBody) return;
+
+        requestsTableBody.innerHTML = '';
+
+        if (requests && requests.length > 0) {
+            requests.forEach(function (request) {
+                const rowClass = request.Status === 'Deleted' ? 'deleted-row' : '';
+
+                const requestDate = new Date(parseInt(request.RequestDate.substr(6)));
+                const formattedDate = requestDate.toISOString().split('T')[0];
+
+                let statusHtml = '';
+                if (request.Status !== 'Deleted') {
+                    if (request.Status === 'Pending') {
+                        statusHtml = `
+                            <select class="status-select" data-id="${request.ReqId}" data-original-status="${request.Status}">
+                                <option value="Pending" selected>Pending</option>
+                                <option value="In-Progress">In-Progress</option>
+                            </select>
+                        `;
+                    } else if (request.Status === 'In-Progress') {
+                        statusHtml = `
+                            <select class="status-select" data-id="${request.ReqId}" data-original-status="${request.Status}">
+                                <option value="In-Progress" selected>In-Progress</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        `;
+                    } else if (request.Status === 'Completed') {
+                        statusHtml = `
+                            <select class="status-select" data-id="${request.ReqId}" data-original-status="${request.Status}">
+                                <option value="Completed" selected>Completed</option>
+                                <option value="Issued">Issued</option>
+                            </select>
+                        `;
+                    } else if (request.Status === 'Issued') {
+                        statusHtml = '<span class="status-completed">Issued</span>';
+                    }
+                } else {
+                    statusHtml = '<span class="status-deleted">Deleted</span>';
+                }
+
+                const newRow = document.createElement('tr');
+                newRow.className = rowClass;
+                newRow.innerHTML = `
+                    <td>${formattedDate}</td>
+                    <td>${request.RequestBy}</td>
+                    <td>${request.EmployeeName}</td>
+                    <td>${request.EmployeeId}</td>
+                    <td>${request.Reason}</td>
+                    <td>${request.Section || ''}</td>
+                    <td class="status-cell">${statusHtml}</td>
+                `;
+
+                requestsTableBody.appendChild(newRow);
+            });
+        } else {
+            const emptyRow = document.createElement('tr');
+            emptyRow.innerHTML = '<td colspan="7" class="text-center">No requests found.</td>';
+            requestsTableBody.appendChild(emptyRow);
+        }
+    }
+});
+        </script>
+    </div>
+    <div class="modal fade" id="newRequestModal" tabindex="-1" aria-labelledby="newRequestModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(120deg, #6b4d95, #3a2b5f); color: white;">
+                    <h5 class="modal-title" id="newRequestModalLabel">
+                        <i class="fas fa-clipboard-list me-2"></i>New ID Request
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="background-color: white;"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="newRequestForm">
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="modalEmployeeId">
+                                    <i class="fas fa-id-badge form-icon"></i>EMP NO
+                                </label>
+                                <input type="text" id="modalEmployeeId" name="EmployeeId" class="form-control"
+                                       placeholder="Enter Employee Number" required />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="modalEmployeeName">
+                                <i class="fas fa-user-tag form-icon"></i>EMP NAME
+                            </label>
+                            <input type="text" id="modalEmployeeName" name="EmployeeName" class="form-control"
+                                   placeholder="Enter Employee Name" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="modalReason">
+                                <i class="fas fa-comment-alt form-icon"></i>REASON
+                            </label>
+                            <select id="modalReason" name="Reason" class="form-select" required>
+                                <option value="" selected disabled>-- Select Reason --</option>
+                                <option value="New Employee">New Employee</option>
+                                <option value="Lost Card">Lost Card</option>
+                                <option value="Damaged Card">Damaged Card</option>
+                                <option value="Data Correction">Data Correction</option>
+                                <option value="Department Transfer">Department Transfer</option>
+                                <option value="Department Promotion">Department Promotion</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="modalSection">
+                                <i class="fas fa-building form-icon"></i>SECTION
+                            </label>
+                            <select id="modalSection" name="Section" class="form-select" required>
+                                <option value="" selected disabled>-- Select Section --</option>
+                                <option value="HR">HR</option>
+                                <option value="IT">IT</option>
+                                <option value="Printing">Printing</option>
+                                <option value="Dye">Dye</option>
+                                <option value="Packing">Packing</option>
+                            </select>
+                        </div>
+
+                        <input type="hidden" id="modalRequestDate" name="RequestDate" />
+                        <input type="hidden" id="modalRequestBy" name="RequestBy" value="@Session["UserName"].ToString()" />
+                        <input type="hidden" id="modalStatus" name="Status" value="Pending" />
+
+                        <div class="info-box mb-4">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-info-circle me-3 mt-1 text-primary"></i>
+                                <p class="mb-0 small">Please ensure all information is accurate. ID requests will be automatically marked as 'Pending'.</p>
+                            </div>
+                        </div>
+
+                        <div class="text-center pt-2">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-paper-plane me-2"></i>Submit Request
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
