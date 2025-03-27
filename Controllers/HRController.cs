@@ -15,11 +15,27 @@ namespace ID_Request_Login.Controllers
 {
     public class HRController : Controller
     {
+        private const int PageLimit = 10;
+
         // GET: HR
-        public ActionResult Index()
+        public ActionResult Index(int page = 1)
         {
-            List<Request_Data> requests = GetAllRequests();
-            ViewBag.Requests = requests;
+            List<Request_Data> allRequests = GetAllRequests();
+
+            int totalItems = allRequests.Count;
+            int totalPages = (int)Math.Ceiling(totalItems / (double)PageLimit);
+
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var pagedRequests = allRequests.Skip((page - 1) * PageLimit).Take(PageLimit).ToList();
+
+            ViewBag.Requests = pagedRequests;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalItems = totalItems;
+            ViewBag.HasPreviousPage = page > 1;
+            ViewBag.HasNextPage = page < totalPages;
+
             return View();
         }
 
@@ -60,7 +76,7 @@ namespace ID_Request_Login.Controllers
         }
 
         [HttpPost]
-        public ActionResult FilterRequests(string fromDate, string toDate, string status, string section)
+        public ActionResult FilterRequests(string fromDate, string toDate, string status, string section, int page = 1)
         {
             List<Request_Data> allRequests = GetAllRequests();
             List<Request_Data> filteredRequests = allRequests;
@@ -86,8 +102,24 @@ namespace ID_Request_Login.Controllers
                 filteredRequests = filteredRequests.Where(r => r.Section == section).ToList();
             }
 
-            return Json(filteredRequests);
+            int totalItems = filteredRequests.Count;
+            int totalPages = (int)Math.Ceiling(totalItems / (double)PageLimit);
+
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var pagedRequests = filteredRequests.Skip((page - 1) * PageLimit).Take(PageLimit).ToList();
+
+            return Json(new
+            {
+                data = pagedRequests,
+                currentPage = page,
+                totalPages = totalPages,
+                totalItems = totalItems,
+                hasNextPage = page < totalPages,
+                hasPreviousPage = page > 1
+            });
         }
+
         [HttpPost]
         public ActionResult CreateRequest(Request_Data request)
         {
@@ -303,7 +335,7 @@ namespace ID_Request_Login.Controllers
             }
 
             MemoryStream ms = new MemoryStream();
-            Document document = new Document(PageSize.A4.Rotate(), 25, 25, 30, 30);
+            Document document = new Document(iTextSharp.text.PageSize.A4.Rotate(), 25, 25, 30, 30);
 
             PdfWriter writer = PdfWriter.GetInstance(document, ms);
             writer.PageEvent = new PageNumberFooter();
