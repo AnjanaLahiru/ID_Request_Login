@@ -9,7 +9,13 @@
         Response.Redirect("~/Login/Index");
     }
 
-    var requests = ViewBag.Requests as List<ID_Request_Login.Models.Request_Data>; }
+    var requests = ViewBag.Requests as List<ID_Request_Login.Models.Request_Data>;
+    var currentPage = ViewBag.CurrentPage;
+    var totalPages = ViewBag.TotalPages;
+    var hasNextPage = ViewBag.HasNextPage;
+    var hasPreviousPage = ViewBag.HasPreviousPage;
+    var totalItems = ViewBag.TotalItems;
+}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -46,7 +52,7 @@
             overflow: hidden;
         }
 
-            /*.header-panel::before {
+        /*.header-panel::before {
                 content: "";
                 position: absolute;
                 top: 0;
@@ -277,6 +283,34 @@
         .status-cell {
             min-width: 140px;
         }
+
+        .pagination {
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+            .pagination .page-item .page-link {
+                color: #4e4376;
+                border-radius: 8px;
+                margin: 0 3px;
+                transition: all 0.3s;
+            }
+
+            .pagination .page-item.active .page-link {
+                background: linear-gradient(120deg, #2b5876, #4e4376);
+                border-color: #4e4376;
+            }
+
+            .pagination .page-item .page-link:hover {
+                background-color: rgba(78, 67, 118, 0.1);
+            }
+
+        .pagination-info {
+            text-align: center;
+            margin-top: 10px;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 
@@ -444,11 +478,41 @@
                                     else
                                     {
                                         <tr>
-                                            <td colspan="8" class="text-center">No requests found.</td>
+                                            <td colspan="7" class="text-center">No requests found.</td>
                                         </tr>
                                     }
                                 </tbody>
                             </table>
+                        </div>
+
+                        <div class="pagination-container">
+                            <div class="pagination-info">
+                                Showing <span id="itemsFrom">@((currentPage - 1) * 10 + 1)</span> to
+                                <span id="itemsTo">@Math.Min(currentPage * 10, totalItems)</span> of
+                                <span id="totalItems">@totalItems</span> entries
+                            </div>
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination" id="paginationControls">
+                                    <li class="page-item @(hasPreviousPage ? "" : "disabled")" id="prevPage">
+                                        <a class="page-link" href="@Url.Action("Index", new { page = currentPage - 1 })" aria-label="Previous">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                    </li>
+
+                                    @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+                                    {
+                                        <li class="page-item @(i == currentPage ? "active" : "")">
+                                            <a class="page-link" href="@Url.Action("Index", new { page = i })">@i</a>
+                                        </li>
+                                    }
+
+                                    <li class="page-item @(hasNextPage ? "" : "disabled")" id="nextPage">
+                                        <a class="page-link" href="@Url.Action("Index", new { page = currentPage + 1 })" aria-label="Next">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
                         </div>
                     </div>
                 </div>
@@ -464,6 +528,15 @@
     const requestsTableBody = document.getElementById('requestsTableBody');
     const newRequestButton = document.getElementById('newRequestButton');
     const reportButton = document.getElementById('reportButton');
+    const paginationControls = document.getElementById('paginationControls');
+
+    let currentPage = @currentPage;
+    let currentFilters = {
+        fromDate: '',
+        toDate: '',
+        status: 'All',
+        section: 'All'
+    };
 
     const newRequestModalElement = document.getElementById('newRequestModal');
     let newRequestModal = null;
@@ -524,7 +597,15 @@
             document.getElementById('statusSelect').selectedIndex = 0;
             document.getElementById('sectionSelect').selectedIndex = 0;
 
-            window.location.href = '@Url.Action("Index", "HR")';
+            currentPage = 1;
+            currentFilters = {
+                fromDate: '',
+                toDate: '',
+                status: 'All',
+                section: 'All'
+            };
+
+            window.location.href = '@Url.Action("Index", "HR", new { page = 1 })';
         });
     }
 
@@ -535,6 +616,14 @@
             const status = document.getElementById('statusSelect').value;
             const section = document.getElementById('sectionSelect').value;
 
+            currentPage = 1;
+            currentFilters = {
+                fromDate: fromDate,
+                toDate: toDate,
+                status: status,
+                section: section
+            };
+
             $.ajax({
                 url: '@Url.Action("FilterRequests", "HR")',
                 type: 'POST',
@@ -542,10 +631,12 @@
                     fromDate: fromDate,
                     toDate: toDate,
                     status: status,
-                    section: section
+                    section: section,
+                    page: currentPage
                 },
-                success: function (data) {
-                    updateRequestsTable(data);
+                success: function (response) {
+                    updateRequestsTable(response.data);
+                    updatePagination(response);
                 },
                 error: function (error) {
                     console.error('Error filtering requests:', error);
@@ -553,6 +644,161 @@
                 }
             });
         });
+    }
+
+    if (paginationControls) {
+        paginationControls.addEventListener('click', function(e) {
+            if (e.target.tagName === 'A' || e.target.parentElement.tagName === 'A') {
+                e.preventDefault();
+
+                let targetPage = currentPage;
+
+                if (e.target.textContent === '»' || e.target.parentElement.textContent === '»') {
+                    targetPage = currentPage + 1;
+                } else if (e.target.textContent === '«' || e.target.parentElement.textContent === '«') {
+                    targetPage = currentPage - 1;
+                } else {
+                    targetPage = parseInt(e.target.textContent);
+                }
+
+                if (isNaN(targetPage) || targetPage === currentPage) {
+                    return;
+                }
+
+                currentPage = targetPage;
+
+                if (currentFilters.fromDate || currentFilters.toDate ||
+                    currentFilters.status !== 'All' || currentFilters.section !== 'All') {
+                    $.ajax({
+                        url: '@Url.Action("FilterRequests", "HR")',
+                        type: 'POST',
+                        data: {
+                            fromDate: currentFilters.fromDate,
+                            toDate: currentFilters.toDate,
+                            status: currentFilters.status,
+                            section: currentFilters.section,
+                            page: currentPage
+                        },
+                        success: function (response) {
+                            updateRequestsTable(response.data);
+                            updatePagination(response);
+                        },
+                        error: function (error) {
+                            console.error('Error loading page:', error);
+                            alert('An error occurred while loading the page.');
+                        }
+                    });
+                } else {
+                    window.location.href = '@Url.Action("Index", "HR")?page=' + currentPage;
+                }
+            }
+        });
+    }
+
+    function updatePagination(response) {
+        const { currentPage, totalPages, totalItems } = response;
+
+        const itemsFrom = document.getElementById('itemsFrom');
+        const itemsTo = document.getElementById('itemsTo');
+        const totalItemsElement = document.getElementById('totalItems');
+
+        if (itemsFrom) itemsFrom.textContent = totalItems > 0 ? (currentPage - 1) * 10 + 1 : 0;
+        if (itemsTo) itemsTo.textContent = Math.min(currentPage * 10, totalItems);
+        if (totalItemsElement) totalItemsElement.textContent = totalItems;
+
+        if (paginationControls) {
+            let paginationHTML = '';
+
+            paginationHTML += `
+                <li class="page-item ${currentPage > 1 ? '' : 'disabled'}" id="prevPage">
+                    <a class="page-link" href="#" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            `;
+
+            for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+                paginationHTML += `
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#">${i}</a>
+                    </li>
+                `;
+            }
+
+            paginationHTML += `
+                <li class="page-item ${currentPage < totalPages ? '' : 'disabled'}" id="nextPage">
+                    <a class="page-link" href="#" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            `;
+
+            paginationControls.innerHTML = paginationHTML;
+        }
+    }
+
+    function updateRequestsTable(requests) {
+        if (!requestsTableBody) return;
+
+        requestsTableBody.innerHTML = '';
+
+        if (requests && requests.length > 0) {
+            requests.forEach(function (request) {
+                const rowClass = request.Status === 'Deleted' ? 'deleted-row' : '';
+
+                const requestDate = new Date(parseInt(request.RequestDate.substr(6)));
+                const formattedDate = requestDate.toISOString().split('T')[0];
+
+                let statusHtml = '';
+                if (request.Status !== 'Deleted') {
+                    if (request.Status === 'Pending') {
+                        statusHtml = `
+                            <select class="status-select" data-id="${request.ReqId}" data-original-status="${request.Status}">
+                                <option value="Pending" selected>Pending</option>
+                                <option value="In-Progress">In-Progress</option>
+                            </select>
+                        `;
+                    } else if (request.Status === 'In-Progress') {
+                        statusHtml = `
+                            <select class="status-select" data-id="${request.ReqId}" data-original-status="${request.Status}">
+                                <option value="In-Progress" selected>In-Progress</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        `;
+                    } else if (request.Status === 'Completed') {
+                        statusHtml = `
+                            <select class="status-select" data-id="${request.ReqId}" data-original-status="${request.Status}">
+                                <option value="Completed" selected>Completed</option
+                                <option value="Completed" selected>Completed</option>
+                                <option value="Issued">Issued</option>
+                            </select>
+                        `;
+                    } else if (request.Status === 'Issued') {
+                        statusHtml = '<span class="status-completed">Issued</span>';
+                    }
+                } else {
+                    statusHtml = '<span class="status-deleted">Deleted</span>';
+                }
+
+                const newRow = document.createElement('tr');
+                newRow.className = rowClass;
+                newRow.innerHTML = `
+                    <td>${formattedDate}</td>
+                    <td>${request.RequestBy}</td>
+                    <td>${request.EmployeeName}</td>
+                    <td>${request.EmployeeId}</td>
+                    <td>${request.Reason}</td>
+                    <td>${request.Section || ''}</td>
+                    <td class="status-cell">${statusHtml}</td>
+                `;
+
+                requestsTableBody.appendChild(newRow);
+            });
+        } else {
+            const emptyRow = document.createElement('tr');
+            emptyRow.innerHTML = '<td colspan="7" class="text-center">No requests found.</td>';
+            requestsTableBody.appendChild(emptyRow);
+        }
     }
 
     if (newRequestButton && newRequestModal) {
@@ -662,69 +908,6 @@
             form.submit();
             document.body.removeChild(form);
         });
-    }
-
-    function updateRequestsTable(requests) {
-        if (!requestsTableBody) return;
-
-        requestsTableBody.innerHTML = '';
-
-        if (requests && requests.length > 0) {
-            requests.forEach(function (request) {
-                const rowClass = request.Status === 'Deleted' ? 'deleted-row' : '';
-
-                const requestDate = new Date(parseInt(request.RequestDate.substr(6)));
-                const formattedDate = requestDate.toISOString().split('T')[0];
-
-                let statusHtml = '';
-                if (request.Status !== 'Deleted') {
-                    if (request.Status === 'Pending') {
-                        statusHtml = `
-                            <select class="status-select" data-id="${request.ReqId}" data-original-status="${request.Status}">
-                                <option value="Pending" selected>Pending</option>
-                                <option value="In-Progress">In-Progress</option>
-                            </select>
-                        `;
-                    } else if (request.Status === 'In-Progress') {
-                        statusHtml = `
-                            <select class="status-select" data-id="${request.ReqId}" data-original-status="${request.Status}">
-                                <option value="In-Progress" selected>In-Progress</option>
-                                <option value="Completed">Completed</option>
-                            </select>
-                        `;
-                    } else if (request.Status === 'Completed') {
-                        statusHtml = `
-                            <select class="status-select" data-id="${request.ReqId}" data-original-status="${request.Status}">
-                                <option value="Completed" selected>Completed</option>
-                                <option value="Issued">Issued</option>
-                            </select>
-                        `;
-                    } else if (request.Status === 'Issued') {
-                        statusHtml = '<span class="status-completed">Issued</span>';
-                    }
-                } else {
-                    statusHtml = '<span class="status-deleted">Deleted</span>';
-                }
-
-                const newRow = document.createElement('tr');
-                newRow.className = rowClass;
-                newRow.innerHTML = `
-                    <td>${formattedDate}</td>
-                    <td>${request.RequestBy}</td>
-                    <td>${request.EmployeeName}</td>
-                    <td>${request.EmployeeId}</td>
-                    <td>${request.Reason}</td>
-                    <td>${request.Section || ''}</td>
-                    <td class="status-cell">${statusHtml}</td>
-                `;
-
-                requestsTableBody.appendChild(newRow);
-            });
-        } else {
-            const emptyRow = document.createElement('tr');
-            emptyRow.innerHTML = '<td colspan="7" class="text-center">No requests found.</td>';
-            requestsTableBody.appendChild(emptyRow);
-        }
     }
 });
         </script>
