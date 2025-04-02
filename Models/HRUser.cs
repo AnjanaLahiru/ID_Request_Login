@@ -18,6 +18,8 @@ namespace ID_Request_Login.Models
         public string HrUserName { get; set; }
         public string HrPassword { get; set; }
         public string LoginErrorMessage { get; set; }
-        public string Section { get; set; }
+        public int Section_Id { get; set; }
+    
+        public virtual Section_Details Section_Details { get; set; }
     }
 }

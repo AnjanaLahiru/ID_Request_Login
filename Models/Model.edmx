@@ -4,16 +4,16 @@
   <edmx:Runtime>
     <!-- SSDL content -->
     <edmx:StorageModels>
-    <Schema Namespace="Model.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2008" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+      <Schema Namespace="Model.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2008" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
         <EntityType Name="HRUser">
           <Key>
             <PropertyRef Name="HRUserId" />
           </Key>
           <Property Name="HRUserId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
           <Property Name="HrUserName" Type="varchar" MaxLength="50" Nullable="false" />
-          <Property Name="HrPassword" Type="varchar" MaxLength="50" Nullable="false" />
-          <Property Name="LoginErrorMessage" Type="nvarchar" MaxLength="255" Nullable="false" />
-          <Property Name="Section" Type="varchar" MaxLength="50" />
+          <Property Name="HrPassword" Type="varchar" MaxLength="100" Nullable="false" />
+          <Property Name="LoginErrorMessage" Type="varchar" MaxLength="50" />
+          <Property Name="Section_Id" Type="int" Nullable="false" />
         </EntityType>
         <EntityType Name="Request_Data">
           <Key>
@@ -29,44 +29,63 @@
           <Property Name="Section" Type="nvarchar" MaxLength="255" />
           <Property Name="Issue Status" Type="varchar" MaxLength="50" />
         </EntityType>
+        <EntityType Name="Section_Details">
+          <Key>
+            <PropertyRef Name="Section_Id" />
+          </Key>
+          <Property Name="Section_Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Section_Name" Type="varchar" MaxLength="50" Nullable="false" />
+        </EntityType>
         <EntityType Name="User">
           <Key>
             <PropertyRef Name="UserID" />
           </Key>
           <Property Name="UserID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
-          <Property Name="UserName" Type="varchar" MaxLength="50" />
-          <Property Name="Password" Type="varchar" MaxLength="100" />
+          <Property Name="UserName" Type="varchar" MaxLength="50" Nullable="false" />
+          <Property Name="Password" Type="varchar" MaxLength="100" Nullable="false" />
           <Property Name="LoginErrorMessage" Type="varchar" MaxLength="50" />
-          <Property Name="Section" Type="varchar" MaxLength="50" />
+          <Property Name="Section_Id" Type="int" Nullable="false" />
         </EntityType>
-        <!--Errors Found During Generation:
-warning 6002: The table/view 'ID_Request.01DB.dbo.User_Details' does not have a primary key defined. The key has been inferred and the definition was created as a read-only table/view.-->
-        <EntityType Name="User_Details">
-          <Key>
-            <PropertyRef Name="User ID" />
-            <PropertyRef Name="User Name" />
-            <PropertyRef Name="Section" />
-            <PropertyRef Name="Department" />
-          </Key>
-          <Property Name="User ID" Type="nvarchar" MaxLength="50" Nullable="false" />
-          <Property Name="User Name" Type="nvarchar" MaxLength="100" Nullable="false" />
-          <Property Name="Section" Type="nvarchar" MaxLength="100" Nullable="false" />
-          <Property Name="Department" Type="nvarchar" MaxLength="100" Nullable="false" />
-        </EntityType>
+        <Association Name="FK__HRUser__Section___21B6055D">
+          <End Role="Section_Details" Type="Self.Section_Details" Multiplicity="1" />
+          <End Role="HRUser" Type="Self.HRUser" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Section_Details">
+              <PropertyRef Name="Section_Id" />
+            </Principal>
+            <Dependent Role="HRUser">
+              <PropertyRef Name="Section_Id" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__User__Section_Id__1CF15040">
+          <End Role="Section_Details" Type="Self.Section_Details" Multiplicity="1" />
+          <End Role="User" Type="Self.User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Section_Details">
+              <PropertyRef Name="Section_Id" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="Section_Id" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
         <EntityContainer Name="ModelStoreContainer">
           <EntitySet Name="HRUser" EntityType="Self.HRUser" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Request_Data" EntityType="Self.Request_Data" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Section_Details" EntityType="Self.Section_Details" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="User" EntityType="Self.User" Schema="dbo" store:Type="Tables" />
-          <EntitySet Name="User_Details" EntityType="Self.User_Details" store:Type="Tables" store:Schema="dbo">
-            <DefiningQuery>SELECT 
-    [User_Details].[User ID] AS [User ID], 
-    [User_Details].[User Name] AS [User Name], 
-    [User_Details].[Section] AS [Section], 
-    [User_Details].[Department] AS [Department]
-    FROM [dbo].[User_Details] AS [User_Details]</DefiningQuery>
-          </EntitySet>
+          <AssociationSet Name="FK__HRUser__Section___21B6055D" Association="Self.FK__HRUser__Section___21B6055D">
+            <End Role="Section_Details" EntitySet="Section_Details" />
+            <End Role="HRUser" EntitySet="HRUser" />
+          </AssociationSet>
+          <AssociationSet Name="FK__User__Section_Id__1CF15040" Association="Self.FK__User__Section_Id__1CF15040">
+            <End Role="Section_Details" EntitySet="Section_Details" />
+            <End Role="User" EntitySet="User" />
+          </AssociationSet>
         </EntityContainer>
-      </Schema></edmx:StorageModels>
+      </Schema>
+    </edmx:StorageModels>
     <!-- CSDL content -->
     <edmx:ConceptualModels>
       <Schema Namespace="Model" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
@@ -76,9 +95,10 @@ warning 6002: The table/view 'ID_Request.01DB.dbo.User_Details' does not have a 
           </Key>
           <Property Name="HRUserId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
           <Property Name="HrUserName" Type="String" MaxLength="50" FixedLength="false" Unicode="false" Nullable="false" />
-          <Property Name="HrPassword" Type="String" MaxLength="50" FixedLength="false" Unicode="false" Nullable="false" />
-          <Property Name="LoginErrorMessage" Type="String" MaxLength="255" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="Section" Type="String" MaxLength="50" FixedLength="false" Unicode="false" />
+          <Property Name="HrPassword" Type="String" MaxLength="100" FixedLength="false" Unicode="false" Nullable="false" />
+          <Property Name="LoginErrorMessage" Type="String" MaxLength="50" FixedLength="false" Unicode="false" />
+          <Property Name="Section_Id" Type="Int32" Nullable="false" />
+          <NavigationProperty Name="Section_Details" Relationship="Self.FK__HRUser__Section___21B6055D" FromRole="HRUser" ToRole="Section_Details" />
         </EntityType>
         <EntityType Name="Request_Data">
           <Key>
@@ -94,40 +114,70 @@ warning 6002: The table/view 'ID_Request.01DB.dbo.User_Details' does not have a 
           <Property Name="Section" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
           <Property Name="Issue_Status" Type="String" MaxLength="50" FixedLength="false" Unicode="false" />
         </EntityType>
+        <EntityType Name="Section_Details">
+          <Key>
+            <PropertyRef Name="Section_Id" />
+          </Key>
+          <Property Name="Section_Id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="Section_Name" Type="String" MaxLength="50" FixedLength="false" Unicode="false" Nullable="false" />
+          <NavigationProperty Name="HRUsers" Relationship="Self.FK__HRUser__Section___21B6055D" FromRole="Section_Details" ToRole="HRUser" />
+          <NavigationProperty Name="Users" Relationship="Self.FK__User__Section_Id__1CF15040" FromRole="Section_Details" ToRole="User" />
+        </EntityType>
         <EntityType Name="User">
           <Key>
             <PropertyRef Name="UserID" />
           </Key>
           <Property Name="UserID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
-          <Property Name="UserName" Type="String" MaxLength="50" FixedLength="false" Unicode="false" />
-          <Property Name="Password" Type="String" MaxLength="100" FixedLength="false" Unicode="false" />
+          <Property Name="UserName" Type="String" MaxLength="50" FixedLength="false" Unicode="false" Nullable="false" />
+          <Property Name="Password" Type="String" MaxLength="100" FixedLength="false" Unicode="false" Nullable="false" />
           <Property Name="LoginErrorMessage" Type="String" MaxLength="50" FixedLength="false" Unicode="false" />
-          <Property Name="Section" Type="String" MaxLength="50" FixedLength="false" Unicode="false" />
-          </EntityType>
-        <EntityType Name="User_Details">
-          <Key>
-            <PropertyRef Name="User_ID" />
-            <PropertyRef Name="User_Name" />
-            <PropertyRef Name="Section" />
-            <PropertyRef Name="Department" />
-          </Key>
-          <Property Name="User_ID" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="User_Name" Type="String" MaxLength="100" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="Section" Type="String" MaxLength="100" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="Department" Type="String" MaxLength="100" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="Section_Id" Type="Int32" Nullable="false" />
+          <NavigationProperty Name="Section_Details" Relationship="Self.FK__User__Section_Id__1CF15040" FromRole="User" ToRole="Section_Details" />
         </EntityType>
-        <EntityContainer Name="Entities" annotation:LazyLoadingEnabled="true">
+        <Association Name="FK__HRUser__Section___21B6055D">
+          <End Role="Section_Details" Type="Self.Section_Details" Multiplicity="1" />
+          <End Role="HRUser" Type="Self.HRUser" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Section_Details">
+              <PropertyRef Name="Section_Id" />
+            </Principal>
+            <Dependent Role="HRUser">
+              <PropertyRef Name="Section_Id" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__User__Section_Id__1CF15040">
+          <End Role="Section_Details" Type="Self.Section_Details" Multiplicity="1" />
+          <End Role="User" Type="Self.User" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Section_Details">
+              <PropertyRef Name="Section_Id" />
+            </Principal>
+            <Dependent Role="User">
+              <PropertyRef Name="Section_Id" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityContainer Name="Entities1" annotation:LazyLoadingEnabled="true">
           <EntitySet Name="HRUsers" EntityType="Self.HRUser" />
           <EntitySet Name="Request_Data" EntityType="Self.Request_Data" />
+          <EntitySet Name="Section_Details" EntityType="Self.Section_Details" />
           <EntitySet Name="Users" EntityType="Self.User" />
-          <EntitySet Name="User_Details" EntityType="Self.User_Details" />
+          <AssociationSet Name="FK__HRUser__Section___21B6055D" Association="Self.FK__HRUser__Section___21B6055D">
+            <End Role="Section_Details" EntitySet="Section_Details" />
+            <End Role="HRUser" EntitySet="HRUsers" />
+          </AssociationSet>
+          <AssociationSet Name="FK__User__Section_Id__1CF15040" Association="Self.FK__User__Section_Id__1CF15040">
+            <End Role="Section_Details" EntitySet="Section_Details" />
+            <End Role="User" EntitySet="Users" />
+          </AssociationSet>
         </EntityContainer>
       </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
     <edmx:Mappings>
       <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
-        <EntityContainerMapping StorageEntityContainer="ModelStoreContainer" CdmEntityContainer="Entities">
+        <EntityContainerMapping StorageEntityContainer="ModelStoreContainer" CdmEntityContainer="Entities1">
           <EntitySetMapping Name="HRUsers">
             <EntityTypeMapping TypeName="Model.HRUser">
               <MappingFragment StoreEntitySet="HRUser">
@@ -135,14 +185,13 @@ warning 6002: The table/view 'ID_Request.01DB.dbo.User_Details' does not have a 
                 <ScalarProperty Name="HrUserName" ColumnName="HrUserName" />
                 <ScalarProperty Name="HrPassword" ColumnName="HrPassword" />
                 <ScalarProperty Name="LoginErrorMessage" ColumnName="LoginErrorMessage" />
-                <ScalarProperty Name="Section" ColumnName="Section" />
+                <ScalarProperty Name="Section_Id" ColumnName="Section_Id" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
           <EntitySetMapping Name="Request_Data">
             <EntityTypeMapping TypeName="Model.Request_Data">
               <MappingFragment StoreEntitySet="Request_Data">
-                <ScalarProperty Name="Issue_Status" ColumnName="Issue Status" />
                 <ScalarProperty Name="ReqId" ColumnName="ReqId" />
                 <ScalarProperty Name="RequestDate" ColumnName="RequestDate" />
                 <ScalarProperty Name="RequestBy" ColumnName="RequestBy" />
@@ -151,6 +200,15 @@ warning 6002: The table/view 'ID_Request.01DB.dbo.User_Details' does not have a 
                 <ScalarProperty Name="Reason" ColumnName="Reason" />
                 <ScalarProperty Name="Status" ColumnName="Status" />
                 <ScalarProperty Name="Section" ColumnName="Section" />
+                <ScalarProperty Name="Issue_Status" ColumnName="Issue Status" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Section_Details">
+            <EntityTypeMapping TypeName="Model.Section_Details">
+              <MappingFragment StoreEntitySet="Section_Details">
+                <ScalarProperty Name="Section_Id" ColumnName="Section_Id" />
+                <ScalarProperty Name="Section_Name" ColumnName="Section_Name" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
@@ -161,17 +219,7 @@ warning 6002: The table/view 'ID_Request.01DB.dbo.User_Details' does not have a 
                 <ScalarProperty Name="UserName" ColumnName="UserName" />
                 <ScalarProperty Name="Password" ColumnName="Password" />
                 <ScalarProperty Name="LoginErrorMessage" ColumnName="LoginErrorMessage" />
-                <ScalarProperty Name="Section" ColumnName="Section" />
-              </MappingFragment>
-            </EntityTypeMapping>
-          </EntitySetMapping>
-          <EntitySetMapping Name="User_Details">
-            <EntityTypeMapping TypeName="Model.User_Details">
-              <MappingFragment StoreEntitySet="User_Details">
-                <ScalarProperty Name="User_ID" ColumnName="User ID" />
-                <ScalarProperty Name="User_Name" ColumnName="User Name" />
-                <ScalarProperty Name="Section" ColumnName="Section" />
-                <ScalarProperty Name="Department" ColumnName="Department" />
+                <ScalarProperty Name="Section_Id" ColumnName="Section_Id" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>

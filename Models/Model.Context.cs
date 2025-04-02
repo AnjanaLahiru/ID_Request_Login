@@ -13,10 +13,10 @@ namespace ID_Request_Login.Models
     using System.Data.Entity;
     using System.Data.Entity.Infrastructure;
     
-    public partial class Entities : DbContext
+    public partial class Entities1 : DbContext
     {
-        public Entities()
-            : base("name=Entities")
+        public Entities1()
+            : base("name=Entities1")
         {
         }
     
@@ -27,7 +27,7 @@ namespace ID_Request_Login.Models
     
         public virtual DbSet<HRUser> HRUsers { get; set; }
         public virtual DbSet<Request_Data> Request_Data { get; set; }
+        public virtual DbSet<Section_Details> Section_Details { get; set; }
         public virtual DbSet<User> Users { get; set; }
-        public virtual DbSet<User_Details> User_Details { get; set; }
     }
 }
