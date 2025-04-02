@@ -10,6 +10,7 @@ using System.IO;
 using iTextSharp.text;
 using iTextSharp.text.pdf;
 using System.Text;
+using System.Data.Entity;
 
 namespace ID_Request_Login.Controllers
 {
@@ -29,6 +30,9 @@ namespace ID_Request_Login.Controllers
 
             var pagedRequests = allRequests.Skip((page - 1) * PageLimit).Take(PageLimit).ToList();
 
+            Dictionary<string, string> sectionNames = GetSectionNames();
+            ViewBag.SectionNames = sectionNames;
+
             ViewBag.Requests = pagedRequests;
             ViewBag.CurrentPage = page;
             ViewBag.TotalPages = totalPages;
@@ -37,6 +41,22 @@ namespace ID_Request_Login.Controllers
             ViewBag.HasNextPage = page < totalPages;
 
             return View();
+        }
+
+        private Dictionary<string, string> GetSectionNames()
+        {
+            Dictionary<string, string> sectionNames = new Dictionary<string, string>();
+
+            using (Entities1 db = new Entities1())
+            {
+                var sections = db.Section_Details.ToList();
+                foreach (var section in sections)
+                {
+                    sectionNames[section.Section_Id.ToString()] = section.Section_Name;
+                }
+            }
+
+            return sectionNames;
         }
 
         private List<Request_Data> GetAllRequests()
@@ -109,9 +129,24 @@ namespace ID_Request_Login.Controllers
 
             var pagedRequests = filteredRequests.Skip((page - 1) * PageLimit).Take(PageLimit).ToList();
 
+            Dictionary<string, string> sectionNames = GetSectionNames();
+
+            var formattedRequests = pagedRequests.Select(r => new
+            {
+                ReqId = r.ReqId,
+                RequestDate = r.RequestDate,
+                RequestBy = r.RequestBy,
+                EmployeeName = r.EmployeeName,
+                EmployeeId = r.EmployeeId,
+                Reason = r.Reason,
+                Status = r.Status,
+                Section = r.Section,
+                SectionName = GetSectionNameById(r.Section, sectionNames)
+            }).ToList();
+
             return Json(new
             {
-                data = pagedRequests,
+                data = formattedRequests,
                 currentPage = page,
                 totalPages = totalPages,
                 totalItems = totalItems,
@@ -120,12 +155,38 @@ namespace ID_Request_Login.Controllers
             });
         }
 
+        private string GetSectionNameById(string sectionId, Dictionary<string, string> sectionNames)
+        {
+            if (string.IsNullOrEmpty(sectionId))
+                return string.Empty;
+
+            if (sectionNames.ContainsKey(sectionId))
+                return sectionNames[sectionId];
+
+            return sectionId; 
+        }
+
         [HttpPost]
         public ActionResult CreateRequest(Request_Data request)
         {
             try
             {
                 string mainconn = ConfigurationManager.ConnectionStrings["SqlConnection"].ConnectionString;
+                string sectionName = null;
+
+                // Get section name from section ID
+                using (Entities1 db = new Entities1())
+                {
+                    int sectionId;
+                    if (int.TryParse(request.Section, out sectionId))
+                    {
+                        var section = db.Section_Details.FirstOrDefault(s => s.Section_Id == sectionId);
+                        if (section != null)
+                        {
+                            sectionName = section.Section_Name;
+                        }
+                    }
+                }
 
                 using (SqlConnection sqlconn = new SqlConnection(mainconn))
                 {
@@ -196,7 +257,7 @@ namespace ID_Request_Login.Controllers
                         sqlcomm.Parameters.AddWithValue("@EmployeeId", request.EmployeeId);
                         sqlcomm.Parameters.AddWithValue("@Reason", request.Reason);
                         sqlcomm.Parameters.AddWithValue("@Status", request.Status ?? "Pending");
-                        sqlcomm.Parameters.AddWithValue("@Section", request.Section);
+                        sqlcomm.Parameters.AddWithValue("@Section", sectionName ?? request.Section);
 
                         sqlcomm.ExecuteNonQuery();
                     }
@@ -334,6 +395,8 @@ namespace ID_Request_Login.Controllers
                 filteredRequests = filteredRequests.Where(r => r.Section == section).ToList();
             }
 
+            Dictionary<string, string> sectionNames = GetSectionNames();
+
             MemoryStream ms = new MemoryStream();
             Document document = new Document(iTextSharp.text.PageSize.A4.Rotate(), 25, 25, 30, 30);
 
@@ -409,7 +472,9 @@ namespace ID_Request_Login.Controllers
                 AddCell(table, request.EmployeeName, cellFont, rowBackground);
                 AddCell(table, request.EmployeeId, cellFont, rowBackground);
                 AddCell(table, request.Reason, cellFont, rowBackground);
-                AddCell(table, request.Section ?? "", cellFont, rowBackground);
+
+                string sectionDisplay = GetSectionNameById(request.Section, sectionNames);
+                AddCell(table, sectionDisplay, cellFont, rowBackground);
 
                 Font statusFont = cellFont;
                 switch (request.Status)

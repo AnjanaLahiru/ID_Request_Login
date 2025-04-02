@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
+using System.Data.Entity; 
 using ID_Request_Login.Models;
 
 namespace ID_Request_Login.Controllers
@@ -17,25 +18,47 @@ namespace ID_Request_Login.Controllers
         [HttpPost]
         public ActionResult Authersize(ID_Request_Login.Models.User usermodel)
         {
-            using (Entities db = new Entities())
+            using (Entities1 db = new Entities1())
             {
-                var userdetails = db.Users.Where(x => x.UserName == usermodel.UserName && x.Password == usermodel.Password).FirstOrDefault();
+                var userdetails = db.Users
+                    .Include(u => u.Section_Details)
+                    .Where(x => x.UserName == usermodel.UserName && x.Password == usermodel.Password)
+                    .FirstOrDefault();
 
                 if (userdetails != null)
                 {
                     Session["UserID"] = userdetails.UserID;
                     Session["UserName"] = userdetails.UserName;
-                    Session["Section"] = userdetails.Section;
+                    Session["Section_Id"] = userdetails.Section_Id;
+
+                    Session["Section"] = userdetails.Section_Id.ToString();
+
+                    if (userdetails.Section_Details != null)
+                    {
+                        Session["SectionName"] = userdetails.Section_Details.Section_Name;
+                    }
+
                     return RedirectToAction("Index", "Home");
                 }
 
-                var hrUserdetails = db.HRUsers.Where(x => x.HrUserName == usermodel.UserName && x.HrPassword == usermodel.Password).FirstOrDefault();
+                var hrUserdetails = db.HRUsers
+                    .Include(h => h.Section_Details)
+                    .Where(x => x.HrUserName == usermodel.UserName && x.HrPassword == usermodel.Password)
+                    .FirstOrDefault();
 
                 if (hrUserdetails != null)
                 {
                     Session["UserID"] = hrUserdetails.HRUserId;
                     Session["UserName"] = hrUserdetails.HrUserName;
-                    Session["Section"] = hrUserdetails.Section;
+                    Session["Section_Id"] = hrUserdetails.Section_Id;
+
+                    Session["Section"] = hrUserdetails.Section_Id.ToString();
+
+                    if (hrUserdetails.Section_Details != null)
+                    {
+                        Session["SectionName"] = hrUserdetails.Section_Details.Section_Name;
+                    }
+
                     Session["UserType"] = "HR";
                     return RedirectToAction("Index", "HR");
                 }

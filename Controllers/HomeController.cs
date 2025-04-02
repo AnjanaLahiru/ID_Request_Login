@@ -10,8 +10,10 @@ namespace ID_Request_Login.Controllers
 {
     public class HomeController : Controller
     {
+        private const int PageLimit = 10;
+
         // GET: Home 
-        public ActionResult Index()
+        public ActionResult Index(int page = 1)
         {
             if (Session["UserID"] == null)
             {
@@ -23,8 +25,24 @@ namespace ID_Request_Login.Controllers
                 return RedirectToAction("Index", "HR");
             }
 
-            List<Request_Data> requests = GetUserRequests();
-            ViewBag.Requests = requests;
+            string sectionName = Session["SectionName"]?.ToString() ?? "Unknown Section";
+            ViewBag.SectionName = sectionName;
+
+            List<Request_Data> allRequests = GetUserRequests();
+
+            int totalItems = allRequests.Count;
+            int totalPages = (int)Math.Ceiling(totalItems / (double)PageLimit);
+
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var pagedRequests = allRequests.Skip((page - 1) * PageLimit).Take(PageLimit).ToList();
+
+            ViewBag.Requests = pagedRequests;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalItems = totalItems;
+            ViewBag.HasPreviousPage = page > 1;
+            ViewBag.HasNextPage = page < totalPages;
 
             return View();
         }
@@ -46,12 +64,31 @@ namespace ID_Request_Login.Controllers
 
                 requestData.Status = "Pending";
 
-                requestData.Section = Session["Section"]?.ToString();
+                // Get the section ID from session
+                string sectionId = Session["Section"]?.ToString();
 
-                requestData.RequestBy = Session["UserName"]?.ToString();
+                // Get the section name from the section_details table
+                string sectionName = null;
 
-                using (Entities db = new Entities())
+                using (Entities1 db = new Entities1())
                 {
+                    if (!string.IsNullOrEmpty(sectionId))
+                    {
+                        int sectionIdInt;
+                        if (int.TryParse(sectionId, out sectionIdInt))
+                        {
+                            var section = db.Section_Details.FirstOrDefault(s => s.Section_Id == sectionIdInt);
+                            if (section != null)
+                            {
+                                sectionName = section.Section_Name;
+                            }
+                        }
+                    }
+
+                    // Set the section name instead of ID
+                    requestData.Section = sectionName ?? Session["SectionName"]?.ToString() ?? sectionId;
+                    requestData.RequestBy = Session["UserName"]?.ToString();
+
                     db.Request_Data.Add(requestData);
                     db.SaveChanges();
                 }
@@ -63,36 +100,54 @@ namespace ID_Request_Login.Controllers
                 ViewData["ErrorMessage"] = "An error occurred while submitting your request. Please try again.";
             }
 
-            List<Request_Data> requests = GetUserRequests();
-            ViewBag.Requests = requests;
-
-            return View();
+            return RedirectToAction("Index", new { page = 1 });
         }
+
+        private string GetSectionName()
+        {
+            return Session["SectionName"]?.ToString() ?? "Unknown Section";
+        }
+
 
         private List<Request_Data> GetUserRequests()
         {
             List<Request_Data> requests = new List<Request_Data>();
 
-            string currentUser = Session["Section"]?.ToString();
+            // Get section name from session
+            string sectionName = Session["SectionName"]?.ToString();
 
-            if (string.IsNullOrEmpty(currentUser))
+            if (string.IsNullOrEmpty(sectionName))
             {
                 return requests;
             }
 
-            using (Entities db = new Entities())
+            using (Entities1 db = new Entities1())
             {
+                // Get requests where Section equals the section name
                 requests = db.Request_Data
-                    .Where(r => r.Section  == currentUser)
+                    .Where(r => r.Section == sectionName)
                     .OrderByDescending(r => r.RequestDate)
                     .ToList();
+
+                // If no requests found by section name, fall back to section ID for backward compatibility
+                if (!requests.Any())
+                {
+                    string sectionId = Session["Section"]?.ToString();
+                    if (!string.IsNullOrEmpty(sectionId))
+                    {
+                        requests = db.Request_Data
+                            .Where(r => r.Section == sectionId)
+                            .OrderByDescending(r => r.RequestDate)
+                            .ToList();
+                    }
+                }
             }
 
             return requests;
         }
 
         [HttpPost]
-        public ActionResult FilterRequests(string fromDate, string toDate, string status)
+        public ActionResult FilterRequests(string fromDate, string toDate, string status, int page = 1)
         {
             if (Session["UserID"] == null)
             {
@@ -100,13 +155,24 @@ namespace ID_Request_Login.Controllers
             }
 
             List<Request_Data> filteredRequests = new List<Request_Data>();
-            string currentUser = Session["UserName"]?.ToString();
+            string sectionName = Session["SectionName"]?.ToString() ?? "Unknown Section";
 
             try
             {
-                using (Entities db = new Entities())
+                using (Entities1 db = new Entities1())
                 {
-                    var query = db.Request_Data.Where(r => r.RequestBy == currentUser);
+                    // Filter by section name instead of section ID
+                    var query = db.Request_Data.Where(r => r.Section == sectionName);
+
+                    // If no results, try with section ID for backward compatibility
+                    if (!query.Any())
+                    {
+                        string sectionId = Session["Section"]?.ToString();
+                        if (!string.IsNullOrEmpty(sectionId))
+                        {
+                            query = db.Request_Data.Where(r => r.Section == sectionId);
+                        }
+                    }
 
                     if (!string.IsNullOrEmpty(fromDate) && !string.IsNullOrEmpty(toDate))
                     {
@@ -124,7 +190,14 @@ namespace ID_Request_Login.Controllers
                     filteredRequests = query.OrderByDescending(r => r.RequestDate).ToList();
                 }
 
-                var formattedRequests = filteredRequests.Select(r => new
+                int totalItems = filteredRequests.Count;
+                int totalPages = (int)Math.Ceiling(totalItems / (double)PageLimit);
+
+                page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+                var pagedRequests = filteredRequests.Skip((page - 1) * PageLimit).Take(PageLimit).ToList();
+
+                var formattedRequests = pagedRequests.Select(r => new
                 {
                     ReqId = r.ReqId,
                     RequestDate = r.RequestDate.ToString("dd/MM/yyyy"),
@@ -133,17 +206,25 @@ namespace ID_Request_Login.Controllers
                     EmployeeId = r.EmployeeId,
                     Reason = r.Reason,
                     Status = r.Status,
-                    CanDelete = r.Status != "Completed" && r.Status != "Issued"
+                    SectionName = sectionName,
+                    CanDelete = r.Status != "Completed" && r.Status != "Issued" && r.Status != "Deleted"
                 }).ToList();
 
-                return Json(formattedRequests);
+                return Json(new
+                {
+                    data = formattedRequests,
+                    currentPage = page,
+                    totalPages = totalPages,
+                    totalItems = totalItems,
+                    hasNextPage = page < totalPages,
+                    hasPreviousPage = page > 1
+                });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Error filtering requests" });
+                return Json(new { success = false, message = "Error filtering requests: " + ex.Message });
             }
         }
-
         [HttpPost]
         public ActionResult DeleteRequests(int[] ids)
         {
@@ -152,17 +233,28 @@ namespace ID_Request_Login.Controllers
                 return Json(new { success = false, message = "User not logged in" });
             }
 
-            int count = 0;         
-            int skippedCount = 0;  
-            string currentUser = Session["UserName"]?.ToString();
+            int count = 0;
+            int skippedCount = 0;
+            string sectionName = Session["SectionName"]?.ToString();
 
             try
             {
-                using (Entities db = new Entities())
+                using (Entities1 db = new Entities1())
                 {
                     foreach (int id in ids)
                     {
-                        var request = db.Request_Data.FirstOrDefault(r => r.ReqId == id && r.RequestBy == currentUser);
+                        // Find request by ID and section name
+                        var request = db.Request_Data.FirstOrDefault(r => r.ReqId == id && r.Section == sectionName);
+
+                        // If not found, try with section ID for backward compatibility
+                        if (request == null)
+                        {
+                            string sectionId = Session["Section"]?.ToString();
+                            if (!string.IsNullOrEmpty(sectionId))
+                            {
+                                request = db.Request_Data.FirstOrDefault(r => r.ReqId == id && r.Section == sectionId);
+                            }
+                        }
 
                         if (request != null)
                         {
@@ -195,7 +287,7 @@ namespace ID_Request_Login.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Error processing delete requests" });
+                return Json(new { success = false, message = "Error processing delete requests: " + ex.Message });
             }
         }
     }
